@@ -1,0 +1,297 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Mass PII Finder — JS Recon Console</title>
+<link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+</head>
+<body>
+
+<div id="toasts" class="toasts" aria-live="polite"></div>
+
+<header class="topbar">
+  <div class="brand">
+    <span class="brand-glyph" aria-hidden="true">
+      <svg class="icon-lg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3l7 3v5c0 4.4-3 8.4-7 10-4-1.6-7-5.6-7-10V6l7-3z"/><path d="M9.5 12l1.8 1.8L15 10"/></svg>
+    </span>
+    <div>
+      <div class="brand-title">MASS PII FINDER</div>
+      <div class="brand-sub">JS recon &middot; secret extraction &middot; validation</div>
+    </div>
+  </div>
+
+  <nav class="tabnav" id="tabnav" role="tablist" aria-label="Sections">
+    <button class="tab-btn active" data-tab="scan" role="tab" aria-selected="true">
+      <svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="11" cy="11" r="7"/><path d="M21 21l-4.3-4.3"/></svg>
+      Scan
+    </button>
+    <button class="tab-btn" data-tab="history" role="tab" aria-selected="false">
+      <svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 12a9 9 0 1 0 3-6.7"/><path d="M3 4v5h5"/><path d="M12 7v5l4 2"/></svg>
+      History<span id="history-count" class="tab-count" hidden>0</span>
+    </button>
+    <button class="tab-btn" data-tab="compare" role="tab" aria-selected="false">
+      <svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M8 3v18"/><path d="M16 3v18"/><path d="M3 8h5"/><path d="M16 8h5"/><path d="M3 16h5"/><path d="M16 16h5"/></svg>
+      Compare
+    </button>
+  </nav>
+
+  <div class="topbar-right">
+    <div class="scope-note">
+      <svg class="icon-sm" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M10.3 3.9L4 6v5c0 4.5 2.9 8.3 8 9.8 5.1-1.5 8-5.3 8-9.8V6l-6.3-2.1a3 3 0 0 0-2.4 0z"/><path d="M12 8v4"/><path d="M12 15.5h.01"/></svg>
+      <span class="scope-note-text">Authorized-scope tool — scan only what you're permitted to test.</span>
+    </div>
+    <a class="support-link" href="https://razorpay.me/@kanishkdadhich" target="_blank" rel="noopener noreferrer">
+      <svg class="icon-sm" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M20.8 4.6a5.5 5.5 0 0 0-7.8 0L12 5.6l-1-1a5.5 5.5 0 0 0-7.8 7.8l1 1L12 21l7.8-7.6 1-1a5.5 5.5 0 0 0 0-7.8z"/></svg>
+      Support / Donate
+    </a>
+  </div>
+</header>
+
+<main class="layout">
+
+  <!-- ============ SCAN TAB ============ -->
+  <section class="tab-pane active" id="pane-scan">
+    <div class="scan-grid">
+
+      <section class="panel control-panel">
+        <div class="panel-label"><span class="step-no">1</span> Target</div>
+        <form id="scan-form">
+          <label class="field-label" for="target">Target URL</label>
+          <input id="target" type="text" placeholder="https://target-app.example.com" autocomplete="off" required>
+
+          <div class="row">
+            <div class="field">
+              <label class="field-label" for="max-files">Max JS files</label>
+              <input id="max-files" type="number" value="150" min="10" max="500">
+            </div>
+            <div class="field">
+              <label class="field-label" for="timeout">Timeout (s)</label>
+              <input id="timeout" type="number" value="10" min="3" max="60">
+            </div>
+          </div>
+
+          <div class="row">
+            <div class="field">
+              <label class="field-label" for="min-conf">Min confidence</label>
+              <div class="range-wrap">
+                <input id="min-conf" type="range" min="0" max="90" value="0" step="10">
+                <span id="min-conf-val" class="range-val">0</span>
+              </div>
+            </div>
+            <div class="field">
+              <label class="field-label" for="rate-limit">Rate limit (req/s)</label>
+              <input id="rate-limit" type="number" value="8" min="1" max="50">
+            </div>
+          </div>
+
+          <div class="toggle-grid">
+            <label class="toggle">
+              <input id="probe" type="checkbox" checked>
+              <span>Probe live endpoints</span>
+            </label>
+            <label class="toggle">
+              <input id="enumerate-subdomains" type="checkbox">
+              <span>Passive subdomain discovery (CT logs)</span>
+            </label>
+            <label class="toggle">
+              <input id="no-subdomains" type="checkbox">
+              <span>Restrict to exact host only</span>
+            </label>
+            <label class="toggle">
+              <input id="no-robots" type="checkbox">
+              <span>Ignore robots.txt</span>
+            </label>
+          </div>
+
+          <details class="scope-details">
+            <summary><svg class="icon-sm chev" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M9 6l6 6-6 6"/></svg>Extra in-scope domains <span class="dim">(optional)</span></summary>
+            <label class="field-label" for="scope-extra">One per line — exact, "sub.example.com", or wildcard "*.example.com"</label>
+            <textarea id="scope-extra" rows="2" placeholder="api.example.com&#10;*.example-cdn.net"></textarea>
+          </details>
+
+          <label class="toggle authorize-toggle">
+            <input id="confirm-authorized" type="checkbox" required>
+            <span>I own this target or am explicitly authorized to test it (bug bounty scope / client engagement).</span>
+          </label>
+
+          <button type="submit" id="scan-btn" class="btn-primary">
+            <svg class="icon" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M8 5.14v13.72a1 1 0 0 0 1.5.87l11-6.86a1 1 0 0 0 0-1.72l-11-6.86A1 1 0 0 0 8 5.14z"/></svg>
+            <span class="btn-label">Run scan</span>
+            <span class="btn-spinner" hidden></span>
+          </button>
+        </form>
+
+        <div class="pipeline">
+          <div class="panel-label">Pipeline</div>
+          <ol id="pipeline-steps">
+            <li data-step="crawling"><span class="step-dot" aria-hidden="true"></span>discover JS files</li>
+            <li data-step="extracting"><span class="step-dot" aria-hidden="true"></span>extract secrets / tokens / endpoints</li>
+            <li data-step="validating"><span class="step-dot" aria-hidden="true"></span>validate findings</li>
+            <li data-step="done"><span class="step-dot" aria-hidden="true"></span>triage report</li>
+          </ol>
+        </div>
+      </section>
+
+      <div class="scan-main">
+        <section class="panel console-panel">
+          <div class="panel-header-row">
+            <div class="panel-label"><span class="step-no">2</span> Live log</div>
+            <button class="btn-icon" id="console-clear" title="Clear log">
+              <svg class="icon-sm" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 7h16"/><path d="M10 11v6"/><path d="M14 11v6"/><path d="M6 7l1 13a1 1 0 0 0 1 1h8a1 1 0 0 0 1-1l1-13"/><path d="M9 7V4a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v3"/></svg>
+              Clear
+            </button>
+          </div>
+          <div id="console" class="console" role="log" aria-live="polite">
+            <div class="console-line dim">$ waiting for target...</div>
+          </div>
+        </section>
+
+        <section class="panel results-panel">
+          <div class="results-header">
+            <div class="panel-label"><span class="step-no">3</span> Findings</div>
+            <div class="stat-row" id="stat-row">
+              <button class="stat crit" data-filter-sev="CRITICAL"><span class="dot" aria-hidden="true"></span>CRIT <b id="stat-critical">0</b></button>
+              <button class="stat high" data-filter-sev="HIGH"><span class="dot" aria-hidden="true"></span>HIGH <b id="stat-high">0</b></button>
+              <button class="stat med" data-filter-sev="MEDIUM"><span class="dot" aria-hidden="true"></span>MED <b id="stat-medium">0</b></button>
+              <button class="stat low" data-filter-sev="LOW"><span class="dot" aria-hidden="true"></span>LOW <b id="stat-low">0</b></button>
+            </div>
+          </div>
+
+          <div class="sev-bar" id="sev-bar" hidden>
+            <div class="sev-bar-crit" id="sev-bar-crit"></div>
+            <div class="sev-bar-high" id="sev-bar-high"></div>
+            <div class="sev-bar-med" id="sev-bar-med"></div>
+            <div class="sev-bar-low" id="sev-bar-low"></div>
+          </div>
+
+          <div class="toolbar-row" id="findings-toolbar" hidden>
+            <div class="search-box">
+              <svg class="icon-sm" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="11" cy="11" r="7"/><path d="M21 21l-4.3-4.3"/></svg>
+              <input id="findings-search" type="text" placeholder="Filter by type, value, category, file... ( / )">
+            </div>
+            <select id="category-filter" class="select-input">
+              <option value="">All categories</option>
+            </select>
+            <label class="toggle inline-toggle">
+              <input id="verify-only" type="checkbox">
+              <span>Needs manual verification only</span>
+            </label>
+            <div class="spacer"></div>
+            <div class="export-row" id="export-row">
+              <div class="export-dropdown">
+                <button class="btn-ghost" id="export-toggle">
+                  <svg class="icon-sm" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 3v12"/><path d="M7 10l5 5 5-5"/><path d="M5 21h14"/></svg>
+                  Export
+                </button>
+                <div class="export-menu" id="export-menu" hidden>
+                  <button data-fmt="json"><svg class="icon-sm" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M14 3H6a1 1 0 0 0-1 1v16a1 1 0 0 0 1 1h12a1 1 0 0 0 1-1V8z"/><path d="M14 3v5h5"/></svg>JSON</button>
+                  <button data-fmt="html"><svg class="icon-sm" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M14 3H6a1 1 0 0 0-1 1v16a1 1 0 0 0 1 1h12a1 1 0 0 0 1-1V8z"/><path d="M14 3v5h5"/></svg>HTML report</button>
+                  <button data-fmt="sarif"><svg class="icon-sm" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M14 3H6a1 1 0 0 0-1 1v16a1 1 0 0 0 1 1h12a1 1 0 0 0 1-1V8z"/><path d="M14 3v5h5"/></svg>SARIF</button>
+                  <button data-fmt="markdown"><svg class="icon-sm" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M14 3H6a1 1 0 0 0-1 1v16a1 1 0 0 0 1 1h12a1 1 0 0 0 1-1V8z"/><path d="M14 3v5h5"/></svg>Markdown</button>
+                  <button data-fmt="csv"><svg class="icon-sm" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M14 3H6a1 1 0 0 0-1 1v16a1 1 0 0 0 1 1h12a1 1 0 0 0 1-1V8z"/><path d="M14 3v5h5"/></svg>CSV</button>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <div id="empty-state" class="empty-state">
+            <div class="empty-glyph" aria-hidden="true">
+              <svg class="icon-lg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="7"/><path d="M21 21l-4.3-4.3"/><path d="M9 11h4"/></svg>
+            </div>
+            <p>Run a scan to pull JS files, mine them for keys/tokens/endpoints, and triage the results here.</p>
+          </div>
+
+          <div id="findings-table-wrap" hidden>
+            <div class="table-scroll">
+              <table class="findings-table">
+                <thead>
+                  <tr>
+                    <th></th>
+                    <th data-sort="severity" class="sortable">Severity</th>
+                    <th data-sort="type" class="sortable">Type</th>
+                    <th data-sort="confidence" class="sortable">Confidence</th>
+                    <th>Value</th>
+                    <th>Found in</th>
+                  </tr>
+                </thead>
+                <tbody id="findings-body"></tbody>
+              </table>
+            </div>
+            <div class="table-footer">
+              <span id="findings-count-label" class="dim"></span>
+              <div class="pager" id="pager"></div>
+            </div>
+          </div>
+        </section>
+      </div>
+    </div>
+  </section>
+
+  <!-- ============ HISTORY TAB ============ -->
+  <section class="tab-pane" id="pane-history">
+    <section class="panel">
+      <div class="panel-header-row">
+        <div class="panel-label">Scan history</div>
+        <button class="btn-ghost" id="history-refresh">
+          <svg class="icon-sm" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 12a9 9 0 1 0 3-6.7"/><path d="M3 4v5h5"/></svg>
+          Refresh
+        </button>
+      </div>
+      <div id="history-empty" class="empty-state">
+        <div class="empty-glyph" aria-hidden="true">
+          <svg class="icon-lg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M3 12a9 9 0 1 0 3-6.7"/><path d="M3 4v5h5"/><path d="M12 7v5l4 2"/></svg>
+        </div>
+        <p>No scans yet. Run one from the Scan tab — every completed scan is saved here for later review, export, and diffing.</p>
+      </div>
+      <div class="table-scroll" id="history-table-wrap" hidden>
+        <table class="findings-table history-table">
+          <thead>
+            <tr>
+              <th>Target</th><th>Started</th><th>Findings</th><th>Crit</th><th>High</th><th></th>
+            </tr>
+          </thead>
+          <tbody id="history-body"></tbody>
+        </table>
+      </div>
+    </section>
+  </section>
+
+  <!-- ============ COMPARE TAB ============ -->
+  <section class="tab-pane" id="pane-compare">
+    <section class="panel">
+      <div class="panel-label">Diff two scans</div>
+      <p class="dim compare-hint">Pick a baseline and a later scan of the same target to see which findings are new, resolved, or persisting since last time — useful for re-checks after a fix, or periodic monitoring.</p>
+      <div class="compare-pickers">
+        <div class="field">
+          <label class="field-label" for="diff-a">Baseline (older)</label>
+          <select id="diff-a" class="select-input"></select>
+        </div>
+        <div class="field">
+          <label class="field-label" for="diff-b">Compare against (newer)</label>
+          <select id="diff-b" class="select-input"></select>
+        </div>
+        <button class="btn-primary compare-btn" id="diff-run">
+          <svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M8 3v18"/><path d="M16 3v18"/><path d="M3 8h5"/><path d="M16 8h5"/><path d="M3 16h5"/><path d="M16 16h5"/></svg>
+          Compare
+        </button>
+      </div>
+      <div id="diff-results" class="diff-results" hidden></div>
+    </section>
+  </section>
+
+</main>
+
+<div id="detail-drawer" class="drawer">
+  <div class="drawer-inner">
+    <button id="drawer-close" class="drawer-close" aria-label="Close">
+      <svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M6 6l12 12"/><path d="M18 6L6 18"/></svg>
+    </button>
+    <div id="drawer-content"></div>
+  </div>
+</div>
+<div id="drawer-overlay" class="drawer-overlay"></div>
+
+<script src="{{ url_for('static', filename='app.js') }}"></script>
+</body>
+</html>
