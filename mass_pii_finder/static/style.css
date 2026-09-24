@@ -211,6 +211,14 @@ button { font: inherit; }
 }
 .support-link:hover { color: var(--accent-bright); }
 
+.social-links { display: flex; align-items: center; gap: 12px; }
+.social-link {
+  color: var(--text-dim);
+  display: inline-flex;
+  transition: color var(--dur) var(--ease);
+}
+.social-link:hover { color: var(--accent-bright); }
+
 /* ---------------- layout ---------------- */
 
 .layout {

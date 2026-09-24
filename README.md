@@ -75,6 +75,14 @@ Or just install the dependencies and run it from the cloned repo:
 pip install -r requirements.txt
 ```
 
+## Author
+
+Built by **Kanishk Dadhich**.
+
+- GitHub: https://github.com/kanishk-dadhich
+- LinkedIn: https://www.linkedin.com/in/kanishk-dadhich/
+- X: https://x.com/whotfbunny
+
 ## Support / Donate
 
 If this tool helped you during testing, you can support the project here:
