@@ -1,5 +1,13 @@
 # Mass PII / Secret Finder — v2
 
+[![PyPI](https://img.shields.io/pypi/v/mass-pii-finder.svg)](https://pypi.org/project/mass-pii-finder/)
+[![Python versions](https://img.shields.io/pypi/pyversions/mass-pii-finder.svg)](https://pypi.org/project/mass-pii-finder/)
+[![License: MIT](https://img.shields.io/badge/license-MIT-green.svg)](https://github.com/kanishk-dadhich/MassPIIFinder)
+
+```bash
+pip install mass-pii-finder
+```
+
 A recon tool that automates the classic bug-bounty JS-mining workflow:
 
 ```
