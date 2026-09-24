@@ -14,7 +14,26 @@ import csv
 import io
 import json
 import html
+import re
 from datetime import datetime, timezone
+
+_ABS_URL_RE = re.compile(r"^(?:https?|wss?)://", re.IGNORECASE)
+
+
+def _link_list_html(urls):
+    """Render URLs as full, clickable <a> links (http/https/ws only);
+    anything else is shown as escaped plain text."""
+    parts = []
+    for u in urls or []:
+        safe = html.escape(u, quote=True)
+        if _ABS_URL_RE.match(u):
+            parts.append(
+                f'<a href="{safe}" target="_blank" rel="noopener noreferrer">{html.escape(u)}</a>'
+            )
+        else:
+            parts.append(html.escape(u))
+    return "<br>".join(parts)
+
 
 SEVERITY_COLORS = {
     "CRITICAL": "#dc2626",
@@ -54,20 +73,26 @@ def build_html_report(target, findings, meta):
     rows = []
     for i, f in enumerate(findings):
         color = SEVERITY_COLORS.get(f["severity"], "#6b7280")
-        files = "<br>".join(html.escape(s) for s in f.get("source_files", []))
+        files = _link_list_html(f.get("source_files", []))
         notes = "<br>".join(html.escape(n) for n in f.get("validation", {}).get("notes", []))
-        value_display = html.escape(f["value"])
-        if len(value_display) > 120:
-            value_display = value_display[:120] + "…"
+        raw_value = html.escape(f["value"])
+        value_display = raw_value[:120] + "…" if len(raw_value) > 120 else raw_value
+        # For endpoint findings the value is often a bare/relative path; show the
+        # resolved absolute URL(s) — the same path in two files can be two URLs.
+        resolved = f.get("resolved_urls", [])
+        resolved_html = (
+            f'<div class="resolved">↳ {_link_list_html(resolved)}</div>' if resolved else ""
+        )
         search_blob = html.escape(" ".join([
-            f["severity"], f["type"], f["category"], f["value"], " ".join(f.get("source_files", []))
+            f["severity"], f["type"], f["category"], f["value"],
+            " ".join(f.get("source_files", [])), " ".join(resolved),
         ]).lower())
         rows.append(f"""
         <tr class="row" data-search="{search_blob}" data-severity="{f['severity']}">
           <td><span class="badge" style="background:{color}">{f['severity']}</span></td>
           <td>{html.escape(f['type'])}</td>
           <td>{f['confidence']}</td>
-          <td><code>{value_display}</code></td>
+          <td><code>{value_display}</code>{resolved_html}</td>
           <td class="small">{files}</td>
           <td class="small">{notes}</td>
         </tr>""")
@@ -93,6 +118,9 @@ def build_html_report(target, findings, meta):
   code {{ background:#0f1117; padding:2px 6px; border-radius:4px; word-break:break-all; }}
   .badge {{ color:white; padding:2px 8px; border-radius:6px; font-size:11px; font-weight:600; }}
   .row.hidden {{ display:none; }}
+  a {{ color:#60a5fa; text-decoration:none; }}
+  a:hover {{ text-decoration:underline; }}
+  .resolved {{ margin-top:4px; font-size:11px; color:#9ca3af; word-break:break-all; }}
 </style></head>
 <body>
   <h1>Mass PII / Secret Finder — Recon Report</h1>
@@ -137,7 +165,7 @@ def build_html_report(target, findings, meta):
 </body></html>"""
 
 
-def build_sarif_report(target, findings, meta, tool_name="mass-pii-finder", tool_version="2.0.0"):
+def build_sarif_report(target, findings, meta, tool_name="mass-pii-finder", tool_version="2.1.0"):
     """SARIF 2.1.0 — importable by GitHub code scanning and most CI
     security dashboards, so findings show up as inline annotations."""
     rules = {}
@@ -173,6 +201,7 @@ def build_sarif_report(target, findings, meta, tool_name="mass-pii-finder", tool
                 "confidence": f["confidence"],
                 "category": f["category"],
                 "needs_manual_verification": f.get("needs_manual_verification", False),
+                "resolved_urls": f.get("resolved_urls", []),
             },
         })
 
@@ -213,7 +242,10 @@ def build_markdown_report(target, findings, meta):
         value = f["value"].replace("|", "\\|").replace("\n", " ")
         if len(value) > 60:
             value = value[:60] + "…"
-        files = "<br>".join(f.get("source_files", []))[:200]
+        found = list(f.get("source_files", []))
+        # include resolved absolute endpoint URL(s) so a bare path isn't ambiguous
+        found += [f"↳ {u}" for u in f.get("resolved_urls", [])]
+        files = "<br>".join(u.replace("|", "\\|") for u in found)
         lines.append(f"| {f['severity']} | {f['type']} | {f['confidence']} | `{value}` | {files} |")
 
     if not findings:
@@ -227,7 +259,7 @@ def build_csv_report(target, findings, meta):
     writer = csv.writer(buf)
     writer.writerow([
         "target", "severity", "type", "category", "confidence", "value",
-        "source_files", "needs_manual_verification", "notes",
+        "source_files", "resolved_urls", "needs_manual_verification", "notes",
     ])
     for f in findings:
         writer.writerow([
@@ -238,6 +270,7 @@ def build_csv_report(target, findings, meta):
             f["confidence"],
             f["value"],
             ";".join(f.get("source_files", [])),
+            ";".join(f.get("resolved_urls", [])),
             f.get("needs_manual_verification", False),
             " | ".join(f.get("validation", {}).get("notes", [])),
         ])

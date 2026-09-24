@@ -359,7 +359,7 @@ function renderTable(rows) {
 
   pageRows.forEach((f, i) => {
     const tr = document.createElement('tr');
-    const files = (f.source_files || []).map(shortUrl).join('<br>');
+    const files = linkList(f.source_files);
     const verifyFlag = f.needs_manual_verification ? '<span class="verify-flag">VERIFY</span>' : '';
     tr.innerHTML = `
       <td>${start + i + 1}</td>
@@ -493,6 +493,7 @@ function openDrawer(f) {
     <div class="kv"><div class="k">Confidence</div><div class="v">${f.confidence} / 100</div></div>
     <div class="kv"><div class="k">Category</div><div class="v">${escapeHtml(f.category)}</div></div>
     <div class="kv"><div class="k">Found in</div><div class="v">${files}</div></div>
+    ${f.resolved_urls && f.resolved_urls.length ? `<div class="kv"><div class="k">Resolved URL${f.resolved_urls.length > 1 ? 's' : ''}</div><div class="v">${linkList(f.resolved_urls)}</div></div>` : ''}
     ${kvBlock('Context', f.context || '')}
     ${decodedHtml}
     ${probeHtml}
@@ -710,4 +711,23 @@ function escapeHtml(s) {
   const div = document.createElement('div');
   div.textContent = s == null ? '' : s;
   return div.innerHTML;
+}
+
+function escapeAttr(s) {
+  return escapeHtml(s).replace(/"/g, '&quot;').replace(/'/g, '&#39;');
+}
+
+// Render a list of URLs as full, clickable links. Only http/https/ws(s) URLs
+// become anchors; anything else is shown as plain text. stopPropagation keeps
+// a link click from also opening the row's detail drawer.
+function linkList(urls) {
+  if (!urls || !urls.length) return '<span class="dim">—</span>';
+  return urls.map((u) => {
+    const txt = escapeHtml(u);
+    const attr = escapeAttr(u);
+    if (/^(https?|wss?):\/\//i.test(u)) {
+      return `<a class="src-link" href="${attr}" target="_blank" rel="noopener noreferrer" onclick="event.stopPropagation()" title="${attr}">${txt}</a>`;
+    }
+    return `<span title="${attr}">${txt}</span>`;
+  }).join('<br>');
 }

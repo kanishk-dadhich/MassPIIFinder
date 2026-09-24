@@ -21,8 +21,8 @@ decode), scope-checked + rate-limited reachability probing — and triage
 by a weighted severity model
    │
    ▼
-report: live console (GUI) or terminal output, plus JSON / HTML /
-SARIF / Markdown / CSV export, with diff-against-previous-scan support
+report: live console (GUI), plus JSON / HTML / SARIF / Markdown / CSV
+export, with diff-against-previous-scan support
 ```
 
 ## ⚠️ Authorized use only
@@ -31,16 +31,16 @@ Run this only against systems you own or are explicitly authorized to test
 (a bug bounty program in scope, a client engagement, your own app). Scope
 enforcement is no longer just a README sentence:
 
-- **`--confirm-authorized`** is a required CLI flag (and a required,
-  checked checkbox in the GUI) — you must explicitly confirm authorization
+- **Explicit authorization is required** — the "I own this target or am
+  explicitly authorized to test it" checkbox in the GUI must be checked
   before a scan will run.
 - Every request the crawler/validator makes is checked against a
-  `ScopeGuard`: the primary target's domain plus any `--scope` rules you
-  add (exact host, `sub.example.com`, or `*.example.com` wildcard). Anything
-  outside that scope is recorded as *excluded*, never fetched.
+  `ScopeGuard`: the primary target's domain plus any extra in-scope rules
+  you add (exact host, `sub.example.com`, or `*.example.com` wildcard).
+  Anything outside that scope is recorded as *excluded*, never fetched.
 - `robots.txt` is honored during the HTML-crawl phase by default.
 - All target-facing requests are rate-limited (default 8 req/s, tunable
-  via `--rate-limit`) so scans stay polite.
+  in the GUI) so scans stay polite.
 
 It does:
 - Read-only HTTP requests to the target (fetching pages/JS it already serves)
@@ -72,7 +72,7 @@ https://razorpay.me/@kanishkdadhich
 
 
 
-## Usage — GUI (recommended)
+## Usage
 
 ```bash
 python app.py
@@ -82,22 +82,9 @@ Open `http://127.0.0.1:7331`. Enter a target URL, confirm authorization,
 optionally add extra in-scope domains and tune scan options, click
 **Run scan**. You get a live pipeline log, a severity-sorted findings
 table, a click-through detail drawer per finding (with decoded JWTs, probe
-results, and validation notes), scan history (SQLite-backed), and
-one-click JSON / HTML / SARIF / Markdown / CSV export.
-
-## Usage — CLI
-
-```bash
-python cli.py https://target.example.com --confirm-authorized
-python cli.py https://target.example.com --confirm-authorized --json out.json --html out.html
-python cli.py https://target.example.com --confirm-authorized --format sarif -o out.sarif
-python cli.py https://target.example.com --confirm-authorized --min-severity HIGH
-python cli.py https://target.example.com --confirm-authorized --no-probe    # skip live endpoint checks
-python cli.py https://target.example.com --confirm-authorized --scope api.example.com --scope "*.example-cdn.net"
-python cli.py https://target.example.com --confirm-authorized --enumerate-subdomains
-python cli.py https://target.example.com --confirm-authorized --rate-limit 4
-python cli.py https://target.example.com --confirm-authorized --diff-against previous.json
-```
+results, full clickable source URLs, and validation notes), scan history
+(SQLite-backed), a Compare tab for scan-to-scan diffing, and one-click
+JSON / HTML / SARIF / Markdown / CSV export.
 
 ## What it detects
 
@@ -136,7 +123,6 @@ core/
   validator.py   structural validation, JWT decode, scope-checked safe endpoint
                  probing, weighted severity, scan-to-scan diffing
   report.py      JSON / HTML (searchable) / SARIF / Markdown / CSV report builders
-cli.py           terminal entry point
 app.py           Flask GUI backend (+ SQLite scan history, diff endpoint)
 templates/       GUI HTML
 static/          GUI CSS/JS
@@ -148,6 +134,7 @@ static/          GUI CSS/JS
 - Add an offline structural check: add a function to `STRUCTURAL_CHECKS` in `core/patterns.py`.
 - Add new endpoint shapes: `ENDPOINT_PATTERNS` in the same file.
 - Add a new report format: add a builder function to `REPORT_BUILDERS` in `core/report.py`.
-- Wire into CI: `cli.py --format sarif -o out.sarif` for GitHub code scanning,
-  or `--diff-against previous.json` to fail only on genuinely new findings.
+- Export **SARIF** from the GUI to drop findings straight into GitHub code
+  scanning or most CI security dashboards; use the **Compare** tab to diff a
+  scan against a previous one and focus on genuinely new findings.
 

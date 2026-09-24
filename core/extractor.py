@@ -22,8 +22,34 @@ import math
 import re
 from collections import defaultdict
 from concurrent.futures import ThreadPoolExecutor, as_completed
+from urllib.parse import urljoin
 
 from .patterns import SECRET_PATTERNS, ENDPOINT_PATTERNS, NOISE_HINTS, STRUCTURAL_CHECKS
+
+# already-absolute URL schemes we should keep verbatim instead of urljoin-ing
+_ABS_URL_RE = re.compile(r"^(?:https?|wss?)://", re.IGNORECASE)
+
+
+def _resolve_endpoint(source_file, value):
+    """Resolve an endpoint finding's value into an absolute URL relative to
+    the JS file it was found in. This disambiguates cases where the same
+    relative path (e.g. /main.12345.js or /api/users) appears in files served
+    from different origins — the report should point at the real full URL, not
+    a bare path. Returns an absolute URL string, or None when the value isn't
+    URL-shaped (e.g. an introspection hint like __schema)."""
+    v = (value or "").strip()
+    if not v:
+        return None
+    if _ABS_URL_RE.match(v):
+        return v  # already absolute — keep as-is
+    # path-shaped (leading slash), or a relative ref with a path/extension
+    if v.startswith("/") or "/" in v or re.search(r"\.[A-Za-z0-9]{2,5}$", v):
+        try:
+            resolved = urljoin(source_file, v)
+            return resolved if _ABS_URL_RE.match(resolved) else None
+        except Exception:
+            return None
+    return None  # bare token (e.g. __schema, IntrospectionQuery) — not a URL
 
 FREEFORM_ASSIGNMENT_RE = re.compile(
     r"(?i)\b([a-zA-Z_][a-zA-Z0-9_]{0,30}(?:secret|token|key|credential|passwd|password)[a-zA-Z0-9_]{0,10})"
@@ -178,6 +204,20 @@ def dedupe_findings(all_findings):
             if f["source_file"] not in merged[key]["source_files"]:
                 merged[key]["source_files"].append(f["source_file"])
             merged[key]["confidence"] = max(merged[key]["confidence"], f["confidence"])
+
+    # For endpoint findings, resolve the (often relative) value against every
+    # source file it appeared in, so the report can show/link the real
+    # absolute URL(s) instead of an ambiguous bare path.
+    for entry in merged.values():
+        if entry.get("category") == "endpoint":
+            resolved = []
+            for sf in entry.get("source_files", []):
+                url = _resolve_endpoint(sf, entry.get("value", ""))
+                if url and url not in resolved:
+                    resolved.append(url)
+            if resolved:
+                entry["resolved_urls"] = resolved
+
     return sorted(merged.values(), key=lambda x: (-x["confidence"], x["type"]))
 
 
