@@ -1,5 +1,11 @@
 # Changelog
 
+## v2.2.1
+
+### Added
+- Author social links (GitHub / LinkedIn / X) in the GUI topbar and an Author
+  section in the README.
+
 ## v2.2.0
 
 ### Added

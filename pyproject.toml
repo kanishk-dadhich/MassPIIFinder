@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "mass-pii-finder"
-version = "2.2.0"
+version = "2.2.1"
 description = "Recon tool that mines JavaScript for secrets, API keys, and PII, then validates and triages the findings."
 readme = "README.md"
 requires-python = ">=3.9"
