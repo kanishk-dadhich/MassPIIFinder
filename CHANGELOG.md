@@ -1,5 +1,18 @@
 # Changelog
 
+## v2.2.0
+
+### Added
+- **Pip-installable package.** Added `pyproject.toml`; the code now lives in a
+  `mass_pii_finder/` package with `templates/` and `static/` shipped as package
+  data. `pip install .` (or `pipx install .`) puts a **`mass-pii-finder`**
+  command on your PATH that launches the GUI from any directory. Installable
+  straight from GitHub via `pipx install git+…`.
+
+### Changed
+- Project restructured into the `mass_pii_finder` package. A thin root `app.py`
+  shim keeps `python app.py` working exactly as before.
+
 ## v2.1.0
 
 ### Added

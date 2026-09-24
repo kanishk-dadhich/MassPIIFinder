@@ -1,0 +1,39 @@
+[build-system]
+requires = ["setuptools>=61"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "mass-pii-finder"
+version = "2.2.0"
+description = "Recon tool that mines JavaScript for secrets, API keys, and PII, then validates and triages the findings."
+readme = "README.md"
+requires-python = ">=3.9"
+license = { text = "MIT" }
+authors = [{ name = "kanishk-dadhich" }]
+keywords = ["security", "recon", "bug-bounty", "pii", "secrets", "javascript"]
+classifiers = [
+    "Environment :: Console",
+    "Intended Audience :: Information Technology",
+    "Programming Language :: Python :: 3",
+    "Topic :: Security",
+]
+dependencies = [
+    "flask>=3.0.0",
+    "requests>=2.31.0",
+]
+
+[project.urls]
+Homepage = "https://github.com/kanishk-dadhich/MassPIIFinder"
+Repository = "https://github.com/kanishk-dadhich/MassPIIFinder"
+Changelog = "https://github.com/kanishk-dadhich/MassPIIFinder/blob/main/CHANGELOG.md"
+
+# `mass-pii-finder` on your PATH launches the local GUI.
+[project.scripts]
+mass-pii-finder = "mass_pii_finder.app:main"
+
+[tool.setuptools]
+packages = ["mass_pii_finder", "mass_pii_finder.core"]
+
+# ship the GUI assets inside the package so Flask can find them after install
+[tool.setuptools.package-data]
+mass_pii_finder = ["templates/*", "static/*"]

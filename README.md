@@ -61,6 +61,16 @@ It deliberately does **not**:
 
 ## Setup
 
+Install it as a package — this puts a `mass-pii-finder` command on your PATH:
+
+```bash
+pip install .
+# isolated (recommended):        pipx install .
+# straight from GitHub:          pipx install git+https://github.com/kanishk-dadhich/MassPIIFinder
+```
+
+Or just install the dependencies and run it from the cloned repo:
+
 ```bash
 pip install -r requirements.txt
 ```
@@ -75,6 +85,8 @@ https://razorpay.me/@kanishkdadhich
 ## Usage
 
 ```bash
+mass-pii-finder      # if installed as a package
+# or, from the cloned repo:
 python app.py
 ```
 
@@ -113,19 +125,22 @@ scope-checked, rate-limited live reachability probe.
 ## Project layout
 
 ```
-core/
-  scope.py       authorization-scope enforcement (ScopeGuard)
-  crawler.py     JS discovery: real multi-hop crawl, dynamic imports, chunk
+mass_pii_finder/           the installable package
+  app.py         Flask GUI backend (+ SQLite scan history, diff endpoint)
+  core/
+    scope.py     authorization-scope enforcement (ScopeGuard)
+    crawler.py   JS discovery: real multi-hop crawl, dynamic imports, chunk
                  manifests, sourcemaps, passive subdomain discovery, robots.txt,
                  rate limiting
-  patterns.py    ~90-pattern regex library + offline structural checks + noise-hint list
-  extractor.py   pattern matching, entropy scoring, freeform heuristic scanner, dedupe
-  validator.py   structural validation, JWT decode, scope-checked safe endpoint
+    patterns.py  ~90-pattern regex library + offline structural checks + noise-hint list
+    extractor.py pattern matching, entropy scoring, freeform heuristic scanner, dedupe
+    validator.py structural validation, JWT decode, scope-checked safe endpoint
                  probing, weighted severity, scan-to-scan diffing
-  report.py      JSON / HTML (searchable) / SARIF / Markdown / CSV report builders
-app.py           Flask GUI backend (+ SQLite scan history, diff endpoint)
-templates/       GUI HTML
-static/          GUI CSS/JS
+    report.py    JSON / HTML (searchable) / SARIF / Markdown / CSV report builders
+  templates/     GUI HTML
+  static/        GUI CSS/JS
+app.py           shim so `python app.py` still works from the repo
+pyproject.toml   packaging (installs the `mass-pii-finder` command)
 ```
 
 ## Extending it

@@ -165,7 +165,7 @@ def build_html_report(target, findings, meta):
 </body></html>"""
 
 
-def build_sarif_report(target, findings, meta, tool_name="mass-pii-finder", tool_version="2.1.0"):
+def build_sarif_report(target, findings, meta, tool_name="mass-pii-finder", tool_version="2.2.0"):
     """SARIF 2.1.0 — importable by GitHub code scanning and most CI
     security dashboards, so findings show up as inline annotations."""
     rules = {}
